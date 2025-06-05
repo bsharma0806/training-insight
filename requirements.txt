@@ -6,3 +6,4 @@ fitparse
 gpxpy
 seaborn
 matplotlib
+scikit-learn
