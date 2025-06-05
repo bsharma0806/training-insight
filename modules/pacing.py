@@ -34,8 +34,9 @@ def display(data):
 
     if 'heart_rate' in data.columns:
         model = LinearRegression()
-        x = data['elapsed'].values.reshape(-1, 1)
-        y = data['heart_rate'].rolling(10, min_periods=1).mean().values
+        df_clean = data[['elapsed', 'heart_rate']].dropna()
+        x = df_clean['elapsed'].values.reshape(-1, 1)
+        y = df_clean['heart_rate'].rolling(10, min_periods=1).mean().dropna().values
         model.fit(x, y)
         slope = model.coef_[0]
 
