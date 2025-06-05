@@ -5,7 +5,14 @@ def display(data):
 
     st.subheader("🔮 'What-If' Simulator")
 
-    data['time'] = pd.to_datetime(data['time'])
+    if 'timestamp' in data.columns:
+        data['time'] = pd.to_datetime(data['timestamp'])
+    elif 'time' in data.columns:
+        data['time'] = pd.to_datetime(data['time'])
+    else:
+        st.warning("No timestamp or time column found.")
+        return
+
     data = data.sort_values('time')
     data['elapsed'] = (data['time'] - data['time'].iloc[0]).dt.total_seconds()
 

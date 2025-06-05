@@ -3,7 +3,14 @@ def display(data):
     import pandas as pd
 
     st.subheader("📊 File Summary")
-    data['time'] = pd.to_datetime(data['time'])
+    if 'timestamp' in data.columns:
+        data['time'] = pd.to_datetime(data['timestamp'])
+    elif 'time' in data.columns:
+        data['time'] = pd.to_datetime(data['time'])
+    else:
+        st.error("No timestamp or time column found in this file.")
+        return
+
     data = data.sort_values('time')
     duration = (data['time'].iloc[-1] - data['time'].iloc[0]).total_seconds() / 60
 
