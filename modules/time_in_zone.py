@@ -1,7 +1,6 @@
 def display(data):
     import streamlit as st
     import pandas as pd
-    import plotly.express as px
 
     st.subheader("⏳ Time-in-Zone + Efficiency")
 
@@ -9,16 +8,24 @@ def display(data):
         st.warning("Heart rate data required.")
         return
 
-    bins = [0, 100, 120, 140, 160, 180, 300]
-    labels = ['Z1', 'Z2', 'Z3', 'Z4', 'Z5', 'Z6']
+    # COROS 6-zone system
+    bins = [0, 102, 120, 138, 156, 174, 300]
+    labels = ['Z1 Recovery', 'Z2 Endurance', 'Z3 Tempo', 'Z4 Threshold', 'Z5 VO2 Max', 'Z6 Anaerobic']
     data['hr_zone'] = pd.cut(data['heart_rate'], bins=bins, labels=labels, right=False)
-    zone_counts = data['hr_zone'].value_counts().sort_index()
 
-    fig = px.bar(zone_counts, labels={'index': 'HR Zone', 'value': 'Time Points'}, title="Time in HR Zones")
-    st.plotly_chart(fig)
+    zone_counts = data['hr_zone'].value_counts().sort_index()
+    st.bar_chart(zone_counts)
 
     if 'distance' in data.columns:
-        data['hr_eff'] = data['distance'].diff().fillna(0) / data['heart_rate']
-        eff_by_zone = data.groupby('hr_zone')['hr_eff'].mean()
-        st.write("**Efficiency per HR zone (meters per bpm):**")
-        st.dataframe(eff_by_zone.round(2))
+        data['speed'] = data['distance'].diff().fillna(0)
+        data['hr_eff'] = data['speed'] / data['heart_rate']
+        data['rei'] = data['speed'] / data['heart_rate']
+        data['ces'] = data['speed'] / data['heart_rate'] / (data['speed'].count() / 60)
+
+        eff = data.groupby('hr_zone').agg({
+            'hr_eff': 'mean',
+            'rei': 'mean',
+            'ces': 'mean'
+        }).round(3)
+        st.write("**Efficiency Metrics by Zone:**")
+        st.dataframe(eff)

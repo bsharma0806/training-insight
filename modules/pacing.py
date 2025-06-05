@@ -2,6 +2,8 @@ def display(data):
     import streamlit as st
     import plotly.graph_objects as go
     import pandas as pd
+    from sklearn.linear_model import LinearRegression
+    import numpy as np
 
     st.subheader("🏃 Pacing & Fueling Breakdown")
 
@@ -18,7 +20,7 @@ def display(data):
 
     fig = go.Figure()
     if 'heart_rate' in data.columns:
-        fig.add_trace(go.Scatter(x=data['elapsed']/60, y=data['heart_rate'], name="Heart Rate (bpm)", yaxis="y1"))
+        fig.add_trace(go.Scatter(x=data['elapsed']/60, y=data['heart_rate'], name="Heart Rate", yaxis="y1"))
     if 'cadence' in data.columns:
         fig.add_trace(go.Scatter(x=data['elapsed']/60, y=data['cadence'], name="Cadence", yaxis="y2"))
 
@@ -31,10 +33,15 @@ def display(data):
     st.plotly_chart(fig, use_container_width=True)
 
     if 'heart_rate' in data.columns:
-        rolling_hr = data['heart_rate'].rolling(window=10, min_periods=1).mean()
-        peak_hr = rolling_hr.max()
-        end_hr = rolling_hr.iloc[-1]
-        if end_hr < peak_hr * 0.85:
-            st.markdown("⚡ **Insight:** Significant HR fade detected in final 25% of session. Suggest earlier fueling or reduced early intensity.")
+        model = LinearRegression()
+        x = data['elapsed'].values.reshape(-1, 1)
+        y = data['heart_rate'].rolling(10, min_periods=1).mean().values
+        model.fit(x, y)
+        slope = model.coef_[0]
+
+        if slope < -0.02:
+            st.markdown("⚠️ **Insight:** Heart rate trend decreased — possible fatigue or overexertion early.")
+        elif slope > 0.02:
+            st.markdown("⚠️ **Insight:** Heart rate increased steadily — may indicate under-pacing early.")
         else:
-            st.markdown("✅ **Insight:** Heart rate remained stable — pacing was likely sustainable.")
+            st.markdown("✅ **Insight:** Heart rate remained stable — consistent pacing.")

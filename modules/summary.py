@@ -12,14 +12,15 @@ def display(data):
         return
 
     data = data.sort_values('time')
-    duration = (data['time'].iloc[-1] - data['time'].iloc[0]).total_seconds() / 60
+    duration_sec = (data['time'].iloc[-1] - data['time'].iloc[0]).total_seconds()
+    minutes, seconds = divmod(duration_sec, 60)
+    st.metric("Duration", f"{int(minutes)} min {int(seconds):02d} sec")
 
-    st.metric("Duration (min)", f"{duration:.1f}")
     if 'distance' in data.columns:
         total_distance = data['distance'].dropna().max() / 1000
         st.metric("Total Distance (km)", f"{total_distance:.2f}")
-    if 'elevation' in data.columns:
-        total_elev = data['elevation'].diff().clip(lower=0).sum()
+    if 'enhanced_altitude' in data.columns:
+        total_elev = data['enhanced_altitude'].diff().clip(lower=0).sum()
         st.metric("Elevation Gain (m)", f"{total_elev:.0f}")
     if 'heart_rate' in data.columns:
         avg_hr = data['heart_rate'].mean()
