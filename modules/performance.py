@@ -21,7 +21,12 @@ def display(data):
     # 2. Compute speed (km/h)
     if 'distance' in data.columns:
         time_diff = data['time'].diff().dt.total_seconds().fillna(0)
-        data['speed_kmh'] = (data['distance'].diff().fillna(0).div(time_diff.replace(0, np.nan))) * 3.6
+        data['speed_kmh'] = (
+            data['distance']
+            .diff()
+            .fillna(0)
+            .div(time_diff.replace(0, np.nan))
+        ) * 3.6
     else:
         st.error("Distance data required for speed calculation.")
         return
@@ -30,7 +35,9 @@ def display(data):
     if 'enhanced_altitude' in data.columns:
         elev_diff = data['enhanced_altitude'].diff().fillna(0)
         dist_m = data['distance'].diff().fillna(0)
-        data['grade_pct'] = (elev_diff.div(dist_m.replace(0, np.nan)) * 100).fillna(0)
+        data['grade_pct'] = (
+            elev_diff.div(dist_m.replace(0, np.nan)) * 100
+        ).fillna(0)
     else:
         st.error("Enhanced altitude data required for grade calculation.")
         return
@@ -43,9 +50,20 @@ def display(data):
         st.error("Cadence data required.")
         return
 
-    # 5. Build 3D scatter: X = grade_pct, Y = speed_kmh, Z = heart_rate, size = cadence, color = elapsed_min
+    # 5. Drop any rows with NaN or infinite values in the fields we need
+    required_cols = ['grade_pct', 'speed_kmh', 'heart_rate', 'cadence', 'elapsed_min']
+    # Replace infinities with NaN
+    data[required_cols] = data[required_cols].replace([np.inf, -np.inf], np.nan)
+    # Drop rows where any of these five columns is NaN
+    clean = data.dropna(subset=required_cols).copy()
+
+    if clean.empty:
+        st.error("No valid data points to plot after cleaning.")
+        return
+
+    # 6. Build 3D scatter: X = grade_pct, Y = speed_kmh, Z = heart_rate, size = cadence, color = elapsed_min
     fig = px.scatter_3d(
-        data_frame=data,
+        data_frame=clean,
         x='grade_pct',
         y='speed_kmh',
         z='heart_rate',
@@ -62,11 +80,13 @@ def display(data):
         title='Performance Clusters: Grade vs Speed vs HR'
     )
 
-    # Adjust marker sizing for better visualization
+    # 7. Adjust marker sizing for better visualization
+    max_cad = clean['cadence'].max()
+    # sizeref formula gives a reasonable bubble size; you can tweak the denominator (40) if needed
     fig.update_traces(
         marker=dict(
             sizemode='diameter',
-            sizeref=2 * max(data['cadence']) / (40**2),
+            sizeref=2 * max_cad / (40 ** 2),
             opacity=0.7
         )
     )
