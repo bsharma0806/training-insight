@@ -9,22 +9,15 @@ uploaded_file = st.file_uploader("Upload a .FIT, .TCX, or .GPX file", type=["fit
 
 if uploaded_file:
     data = parse_file(uploaded_file)
-
-    if data is None or data.empty:
-        st.error("Unsupported file or empty dataset.")
-    else:
-        # Debug: show columns detected
-        st.write("**Detected columns:**", list(data.columns))
-
-        # Call performance first
-        performance.display(data)
-
-        # Other modules
+    if data is not None and not data.empty:
+        performance.display(data)   # Only the 3D scatter will appear here
         summary.display(data)
         pacing.display(data)
         time_in_zone.display(data)
         terrain.display(data)
         heatmap.display(data)
         simulator.display(data)
+    else:
+        st.error("Unsupported file or empty dataset.")
 else:
     st.info("Upload a training file to get started.")
