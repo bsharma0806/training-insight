@@ -10,7 +10,7 @@ uploaded_file = st.file_uploader("Upload a .FIT, .TCX, or .GPX file", type=["fit
 if uploaded_file:
     data = parse_file(uploaded_file)
     if data is not None and not data.empty:
-        performance.display(data)   # ← This must be present
+        performance.display(data)
         summary.display(data)
         pacing.display(data)
         time_in_zone.display(data)
@@ -21,4 +21,3 @@ if uploaded_file:
         st.error("Unsupported file or empty dataset.")
 else:
     st.info("Upload a training file to get started.")
-

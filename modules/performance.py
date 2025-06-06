@@ -31,15 +31,9 @@ def display(data):
         st.error("Distance data required for speed calculation.")
         return
 
-    # 3. Compute elevation grade (%)
-    if 'enhanced_altitude' in data.columns:
-        elev_diff = data['enhanced_altitude'].diff().fillna(0)
-        dist_m = data['distance'].diff().fillna(0)
-        data['grade_pct'] = (
-            elev_diff.div(dist_m.replace(0, np.nan)) * 100
-        ).fillna(0)
-    else:
-        st.error("Enhanced altitude data required for grade calculation.")
+    # 3. Ensure elevation data exists
+    if 'enhanced_altitude' not in data.columns:
+        st.error("Enhanced altitude data required for elevation axis.")
         return
 
     # 4. Verify heart rate and cadence exist
@@ -50,43 +44,42 @@ def display(data):
         st.error("Cadence data required.")
         return
 
-    # 5. Drop any rows with NaN or infinite values in the fields we need
-    required_cols = ['grade_pct', 'speed_kmh', 'heart_rate', 'cadence', 'elapsed_min']
-    # Replace infinities with NaN
+    # 5. Clean NaNs or infinities in the columns we need
+    required_cols = ['speed_kmh', 'heart_rate', 'enhanced_altitude', 'cadence', 'elapsed_min']
     data[required_cols] = data[required_cols].replace([np.inf, -np.inf], np.nan)
-    # Drop rows where any of these five columns is NaN
     clean = data.dropna(subset=required_cols).copy()
 
     if clean.empty:
         st.error("No valid data points to plot after cleaning.")
         return
 
-    # 6. Build 3D scatter: X = grade_pct, Y = speed_kmh, Z = heart_rate, size = cadence, color = elapsed_min
+    # 6. Build 3D scatter: 
+    #    X = speed_kmh, Y = heart_rate, Z = enhanced_altitude, size = cadence, color = elapsed_min
     fig = px.scatter_3d(
         data_frame=clean,
-        x='grade_pct',
-        y='speed_kmh',
-        z='heart_rate',
+        x='speed_kmh',
+        y='heart_rate',
+        z='enhanced_altitude',
         size='cadence',
         color='elapsed_min',
         labels={
-            'grade_pct': 'Grade (%)',
             'speed_kmh': 'Speed (km/h)',
             'heart_rate': 'Heart Rate (bpm)',
+            'enhanced_altitude': 'Elevation (m)',
             'elapsed_min': 'Time (min)',
             'cadence': 'Cadence (spm)'
         },
         color_continuous_scale='Viridis',
-        title='Performance Clusters: Grade vs Speed vs HR'
+        title='Performance Clusters: Speed vs HR vs Elevation'
     )
 
-    # 7. Adjust marker sizing for better visualization
+    # 7. Reduce marker size for readability
     max_cad = clean['cadence'].max()
-    # sizeref formula gives a reasonable bubble size; you can tweak the denominator (40) if needed
     fig.update_traces(
         marker=dict(
             sizemode='diameter',
-            sizeref=2 * max_cad / (40 ** 2),
+            # sizeref formula: smaller denominator → smaller bubbles
+            sizeref=2 * max_cad / (60 ** 2),
             opacity=0.7
         )
     )
