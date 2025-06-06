@@ -36,16 +36,13 @@ def display(data):
         st.error("Enhanced altitude data required for elevation axis.")
         return
 
-    # 4. Verify heart rate and cadence exist
+    # 4. Verify heart rate exists
     if 'heart_rate' not in data.columns:
         st.error("Heart rate data required.")
         return
-    if 'cadence' not in data.columns:
-        st.error("Cadence data required.")
-        return
 
-    # 5. Clean NaNs or infinities in the columns we need
-    required_cols = ['speed_kmh', 'heart_rate', 'enhanced_altitude', 'cadence', 'elapsed_min']
+    # 5. Clean NaNs or infinities
+    required_cols = ['speed_kmh', 'heart_rate', 'enhanced_altitude', 'elapsed_min']
     data[required_cols] = data[required_cols].replace([np.inf, -np.inf], np.nan)
     clean = data.dropna(subset=required_cols).copy()
 
@@ -53,33 +50,28 @@ def display(data):
         st.error("No valid data points to plot after cleaning.")
         return
 
-    # 6. Build 3D scatter: 
-    #    X = speed_kmh, Y = heart_rate, Z = enhanced_altitude, size = cadence, color = elapsed_min
+    # 6. Build 3D bubble scatter: X = speed_kmh, Y = heart_rate, Z = enhanced_altitude, color = elapsed_min
     fig = px.scatter_3d(
         data_frame=clean,
         x='speed_kmh',
         y='heart_rate',
         z='enhanced_altitude',
-        size='cadence',
         color='elapsed_min',
         labels={
             'speed_kmh': 'Speed (km/h)',
             'heart_rate': 'Heart Rate (bpm)',
             'enhanced_altitude': 'Elevation (m)',
-            'elapsed_min': 'Time (min)',
-            'cadence': 'Cadence (spm)'
+            'elapsed_min': 'Time (min)'
         },
         color_continuous_scale='Viridis',
         title='Performance Clusters: Speed vs HR vs Elevation'
     )
 
-    # 7. Reduce marker size for readability
-    max_cad = clean['cadence'].max()
+    # 7. Use small uniform bubble size (circle markers)
     fig.update_traces(
         marker=dict(
-            sizemode='diameter',
-            # sizeref formula: smaller denominator → smaller bubbles
-            sizeref=2 * max_cad / (60 ** 2),
+            size=4,
+            symbol='circle',
             opacity=0.7
         )
     )
