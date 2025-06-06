@@ -16,7 +16,6 @@ def display(data):
         return
 
     data = data.sort_values('time').reset_index(drop=True)
-    # Use elapsed minutes for color mapping
     data['elapsed_min'] = (data['time'] - data['time'].iloc[0]).dt.total_seconds() / 60
 
     # 2. Compute speed (km/h)
