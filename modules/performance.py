@@ -6,10 +6,6 @@ def display(data):
 
     st.subheader("🔬 Performance 3D Scatter")
 
-    # Debug: print data sample for reference
-    st.write("Data preview (first 5 rows):")
-    st.write(data.head())
-
     # 1. Parse time
     if 'timestamp' in data.columns:
         data['time'] = pd.to_datetime(data['timestamp'])
@@ -37,55 +33,43 @@ def display(data):
 
     # 3. Ensure elevation data exists
     if 'enhanced_altitude' not in data.columns:
-        st.error("No 'enhanced_altitude' column found for elevation axis.")
+        st.error("No 'enhanced_altitude' column found for elevation.")
         return
 
-    # 4. Verify heart rate and cadence exist
+    # 4. Verify heart rate exists
     if 'heart_rate' not in data.columns:
         st.error("No 'heart_rate' column found.")
         return
-    if 'cadence' not in data.columns:
-        st.warning("No 'cadence' column found. Bubbles will be uniform size.")
-        # We will assign a constant cadence so bubbles appear but are uniform
-        data['cadence'] = 1
 
-    # 5. Clean NaNs or infinities
-    required_cols = ['speed_kmh', 'heart_rate', 'enhanced_altitude', 'cadence', 'elapsed_min']
+    # 5. Drop rows with NaN or infinite values in required columns
+    required_cols = ['speed_kmh', 'heart_rate', 'enhanced_altitude', 'elapsed_min']
     data[required_cols] = data[required_cols].replace([np.inf, -np.inf], np.nan)
     clean = data.dropna(subset=required_cols).copy()
 
     if clean.empty:
-        st.error("No valid data points to plot after cleaning.")
+        st.error("No valid data to plot after cleaning.")
         return
 
-    # 6. Build 3D bubble scatter
-    #    X = speed_kmh, Y = heart_rate, Z = enhanced_altitude, size = constant 'cadence'
+    # 6. Build 3D bubble scatter: X = speed_kmh, Y = heart_rate, Z = enhanced_altitude
+    #    Bubble size = fixed small diameter, Color = elapsed_min
     fig = px.scatter_3d(
         data_frame=clean,
         x='speed_kmh',
         y='heart_rate',
         z='enhanced_altitude',
-        size='cadence',         # uniform or real cadence
+        size=np.ones(len(clean)) * 4,      # uniform small bubble size
         color='elapsed_min',
         labels={
             'speed_kmh': 'Speed (km/h)',
             'heart_rate': 'Heart Rate (bpm)',
             'enhanced_altitude': 'Elevation (m)',
-            'elapsed_min': 'Time (min)',
-            'cadence': 'Cadence (spm)'
+            'elapsed_min': 'Time (min)'
         },
         color_continuous_scale='Viridis',
         title='Performance Clusters: Speed vs HR vs Elevation'
     )
 
-    # 7. Set a small fixed bubble size so all points remain visible
-    fig.update_traces(
-        marker=dict(
-            sizemode='diameter',
-            # sizeref controls bubble size; a larger denominator makes bubbles smaller
-            sizeref=2 * clean['cadence'].max() / (80 ** 2),
-            opacity=0.7
-        )
-    )
+    # 7. Adjust marker opacity
+    fig.update_traces(marker=dict(opacity=0.7))
 
     st.plotly_chart(fig, use_container_width=True)
